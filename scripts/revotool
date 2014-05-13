@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""Revotool -- a CLI tool for working with MODX Revolution™.
+
+Usage:
+  revotool pull <remote>
+  revotool push <remote>
+  revotool remote add <remote> <host> <username>
+  revotool remote remove <remote>
+  revotool (-h | --help)
+  revotool --version
+
+Options:
+  -h --help     Show this screen.
+  --version     Show version.
+
+"""
+
+import sys
+from getpass import getpass
+from docopt import docopt
+from revotool import __version__
+from revotool.fs import FS
+from revotool.modx import MODXClient
+from revotool.pull import Puller
+from revotool.push import Pusher
+
+
+REMOTES_FILE = '_revotool/remotes.json'
+
+
+if __name__ == '__main__':
+    arguments = docopt(__doc__, version=__version__)
+    fs = FS('.')
+    try:
+        remotes = fs.read_data(REMOTES_FILE)
+    except (OSError, IOError):
+        remotes = {}
+
+    if arguments['remote']:
+        if arguments['add']:
+            remotes[arguments['<remote>']] = {
+                'host': arguments['<host>'],
+                'username': arguments['<username>']
+            }
+        if arguments['remove']:
+            del remotes[arguments['<remote>']]
+        fs.write_data(REMOTES_FILE, remotes)
+        sys.exit(0)
+
+    if arguments['<remote>']:
+        remote_name = arguments['<remote>']
+        try:
+            remote = remotes[remote_name]
+        except KeyError:
+            print('Remote {0} not found.'.format(remote_name))
+            sys.exit(1)
+        password = getpass('Password for {0} on {1}: '.format(remote['username'],
+            remote['host']))
+        modxclient = MODXClient(remote['host'], remote['username'], password)
+
+    if arguments['pull']:
+        puller = Puller(remote_name)
+        puller.fs = fs
+        puller.modxclient = modxclient
+        for t in ['template', 'chunk', 'snippet', 'plugin']:
+            puller.pull(t)
+
+    if arguments['push']:
+        pusher = Pusher(remote_name)
+        pusher.fs = fs
+        pusher.modxclient = modxclient
+        for t in ['template', 'chunk', 'snippet', 'plugin']:
+            pusher.push(t)
+
+    print(arguments)
+else:
+    print('WTF are you doing?!')

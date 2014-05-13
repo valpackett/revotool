@@ -1,0 +1,9 @@
+# Config file for automatic testing at travis-ci.org
+
+language: python
+python:
+  - "3.3"
+  - "2.7"
+  - "pypy"
+install: pip install tox
+script: tox

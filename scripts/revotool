@@ -73,6 +73,6 @@ if __name__ == '__main__':
         for t in ['template', 'chunk', 'snippet', 'plugin']:
             pusher.push(t)
 
-    print(arguments)
+    # print(arguments)
 else:
     print('WTF are you doing?!')

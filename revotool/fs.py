@@ -15,7 +15,7 @@ class FS(object):
         except (OSError, IOError):
             pass
         with open(fullpath, 'w') as f:
-            f.write(content)
+            f.write(content.encode('utf8', 'replace'))
 
     def write_data(self, filepath, content):
         return self.write(filepath, json.dumps(content))

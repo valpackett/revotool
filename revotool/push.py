@@ -42,7 +42,10 @@ class Pusher(WithMapping):
                     self.mapping[fullpath] = res['id']
 
     def push(self, tp):
-        self.mapping = self._read_mapping()
+        try:
+            self.mapping = self._read_mapping()
+        except (IOError, OSError):
+            self.mapping = {}
         self.categories = self._read_categories()
         self._process(tp)
         self._write_mapping()

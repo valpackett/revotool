@@ -3,27 +3,35 @@
 """Revotool -- a CLI tool for working with MODX Revolution™.
 
 Usage:
-  revotool pull <remote>
-  revotool push <remote>
-  revotool remote add <remote> <host> <username>
+  revotool pull <remote> [options]
+  revotool push <remote> [options]
+  revotool remote add <remote> <host> [<username>]
   revotool remote remove <remote>
   revotool (-h | --help)
   revotool --version
 
 Options:
-  -h --help     Show this screen.
-  --version     Show version.
+  -s --save-password   Save the password in .netrc.
+  -h --help            Show this screen.
+  --version            Show version.
 
 """
 
 import sys
+from os import path
 from getpass import getpass
+from netrc import netrc
 from docopt import docopt
 from revotool import __version__
 from revotool.fs import FS
 from revotool.modx import MODXClient
 from revotool.pull import Puller
 from revotool.push import Pusher
+try:
+    import __builtin__
+    input = getattr(__builtin__, 'raw_input')
+except (ImportError, AttributeError):
+    pass
 
 
 REMOTES_FILE = '_revotool/remotes.json'
@@ -55,9 +63,20 @@ if __name__ == '__main__':
         except KeyError:
             print('Remote {0} not found.'.format(remote_name))
             sys.exit(1)
-        password = getpass('Password for {0} on {1}: '.format(remote['username'],
-            remote['host']))
-        modxclient = MODXClient(remote['host'], remote['username'], password)
+        host = remote['host']
+        from_rc = netrc().authenticators(host)
+        if from_rc:
+            username, _, password = from_rc
+        if not username:
+            username = remote['username'] or input('Username: ')
+        if not password:
+            password = getpass('Password for {0} on {1}: '.format(
+                username, host))
+        if not from_rc and arguments['--save-password']:
+            with open(path.expanduser('~/.netrc'), 'a') as f:
+                f.write('\nmachine {0}\n  login {1}\n  password {2}'.format(
+                    host, username, password))
+        modxclient = MODXClient(host, username, password)
 
     if arguments['pull']:
         puller = Puller(remote_name)

@@ -24,7 +24,7 @@ from netrc import netrc
 from docopt import docopt
 from revotool import __version__
 from revotool.fs import FS
-from revotool.modx import MODXClient
+from revotool.modx import MODXClient, MODXBasicAuthException
 from revotool.pull import Puller
 from revotool.push import Pusher
 try:
@@ -35,6 +35,25 @@ except (ImportError, AttributeError):
 
 
 REMOTES_FILE = '_revotool/remotes.json'
+
+
+def add_to_netrc(machine, login, password):
+    with open(path.expanduser('~/.netrc'), 'a') as f:
+        f.write('\nmachine {0}\n  login {1}\n  password {2}'.format(
+            machine, login, password))
+
+
+def get_from_netrc_or_prompt(machine, login_prompt, password_prompt,
+        login_fallback=None, password_fallback=None):
+    login, password = None, None
+    from_rc = netrc().authenticators(machine)
+    if from_rc:
+        login, _, password = from_rc
+    if not login:
+        login = login_fallback or input(login_prompt)
+    if not password:
+        password = password_fallback or getpass(password_prompt)
+    return login, password, bool(from_rc)
 
 
 if __name__ == '__main__':
@@ -64,20 +83,25 @@ if __name__ == '__main__':
             print('Remote {0} not found.'.format(remote_name))
             sys.exit(1)
         host = remote['host']
-        from_rc = netrc().authenticators(host)
-        username, password = None, None
-        if from_rc:
-            username, _, password = from_rc
-        if not username:
-            username = remote['username'] or input('Username: ')
-        if not password:
-            password = getpass('Password for {0} on {1}: '.format(
-                username, host))
-        if not from_rc and arguments['--save-password']:
-            with open(path.expanduser('~/.netrc'), 'a') as f:
-                f.write('\nmachine {0}\n  login {1}\n  password {2}'.format(
-                    host, username, password))
-        modxclient = MODXClient(host, username, password)
+        username, password, is_from_rc = get_from_netrc_or_prompt(host,
+            login_prompt='MODX(r) Username: ',
+            password_prompt='MODX(r) Password: ',
+            login_fallback=remote['username'])
+        if not is_from_rc and arguments['--save-password']:
+            add_to_netrc(host, username, password)
+        try:
+            modxclient = MODXClient(host, username, password)
+        except MODXBasicAuthException:
+            basic_host = 'basic+' + host
+            basic_username, basic_password, basic_is_from_rc = \
+                get_from_netrc_or_prompt(basic_host,
+                    login_prompt='HTTP Basic username: ',
+                    password_prompt='HTTP Basic password: ')
+            modxclient = MODXClient(host, username, password, basic_username,
+                    basic_password)
+            if not basic_is_from_rc and arguments['--save-password']:
+                add_to_netrc(basic_host, basic_username, basic_password)
+
 
     if arguments['pull']:
         puller = Puller(remote_name)

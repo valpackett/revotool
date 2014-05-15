@@ -7,6 +7,7 @@ It allows you to use git to work on websites powered by this CMS.
 
 - pulling elements
 - pushing elements
+- HTTP Basic auth (like, if the whole site is password protected)
 
 ### TODO
 

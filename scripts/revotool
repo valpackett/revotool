@@ -65,6 +65,7 @@ if __name__ == '__main__':
             sys.exit(1)
         host = remote['host']
         from_rc = netrc().authenticators(host)
+        username, password = None, None
         if from_rc:
             username, _, password = from_rc
         if not username:

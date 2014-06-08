@@ -5,6 +5,7 @@
 Usage:
   revotool pull <remote> [options]
   revotool push <remote> [options]
+  revotool delete <remote> <resource-type> <resource-id> [options]
   revotool remote add <remote> <host> [<username>]
   revotool remote remove <remote>
   revotool (-h | --help)
@@ -116,6 +117,10 @@ if __name__ == '__main__':
         pusher.modxclient = modxclient
         for t in ['template', 'chunk', 'snippet', 'plugin']:
             pusher.push(t)
+
+    if arguments['delete']:
+        modxclient.deleteElement(arguments['<resource-type>'],
+                arguments['<resource-id>'])
 
     # print(arguments)
 else:

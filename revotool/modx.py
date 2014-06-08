@@ -57,6 +57,11 @@ class MODXClient(object):
                 raise MODXException(str(res['data']))
         return res
 
+    def _postElement(self, tp, data):
+        data['HTTP_MODAUTH'] = self.modauth
+        return self._post('connectors/element/' + tp + '.php',
+            data=data)['object']
+
     def getElements(self, tp, node=None):
         if not node:
             node = 'n_type_' + tp
@@ -80,15 +85,16 @@ class MODXClient(object):
             'HTTP_MODAUTH': self.modauth
         })['object']
 
-    def updateElement(self, tp, i, data):
+    def updateElement(self, tp, i, data={}):
         data['action'] = 'update'
         data['id'] = i
-        data['HTTP_MODAUTH'] = self.modauth
-        return self._post('connectors/element/' + tp + '.php',
-            data=data)['object']
+        return self._postElement(tp, data)
 
-    def createElement(self, tp, data):
+    def createElement(self, tp, data={}):
         data['action'] = 'create'
-        data['HTTP_MODAUTH'] = self.modauth
-        return self._post('connectors/element/' + tp + '.php',
-            data=data)['object']
+        return self._postElement(tp, data)
+
+    def removeElement(self, tp, i, data={}):
+        data['action'] = 'remove'
+        data['id'] = i
+        return self._postElement(tp, data)

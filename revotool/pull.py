@@ -13,7 +13,7 @@ class Puller(WithMapping):
             return res
         if res[-1] != '\n':
             res += '\n'
-        if el['type'] == 'plugin':
+        if el['type'] == 'plugin' or el['type'] == 'snippet':
             res = '<?php\n' + res
         return res
 
